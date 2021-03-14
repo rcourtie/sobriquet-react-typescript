@@ -1,0 +1,10 @@
+.App {
+  font-family: sans-serif;
+}
+
+.ButtonGrid {
+  display: grid;
+  column-gap: 8px;
+  row-gap: 8px;
+  grid-template-columns: minmax(250px, 1fr) 1fr;
+}
