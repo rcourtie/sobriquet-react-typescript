@@ -1,5 +1,7 @@
 .App {
   font-family: sans-serif;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 .ButtonGrid {
@@ -7,4 +9,19 @@
   column-gap: 8px;
   row-gap: 8px;
   grid-template-columns: minmax(250px, 1fr) 1fr;
+  margin-bottom: 16px;
+}
+
+.teams {
+  display: flex;
+  justify-content: space-between;
+}
+
+.teams ul {
+  margin: 0;
+  padding: 0;
+}
+.teams li {
+  margin: 0;
+  padding: 16px 0;
 }

@@ -5,6 +5,8 @@
   "keywords": [],
   "main": "src/index.tsx",
   "dependencies": {
+    "@types/faker": "5.1.7",
+    "faker": "5.4.0",
     "react": "17.0.1",
     "react-dom": "17.0.1",
     "react-json-view": "^1.21.3",
