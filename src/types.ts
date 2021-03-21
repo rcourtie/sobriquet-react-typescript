@@ -21,9 +21,14 @@ export interface Player {
   id: string;
   team: Team;
   name: string;
+  cardPool?: Card[];
 }
 
 export type Action =
   | { type: "ADD_PLAYER"; payload: { player: Player } }
   | { type: "SWITCH_TEAM"; payload: { playerId: string } }
-  | { type: "START_GAME" };
+  | { type: "START_GAME" }
+  | {
+      type: "PLAYER_SELECT_CARDS";
+      payload: { playerId: string; cards: Card[] };
+    };

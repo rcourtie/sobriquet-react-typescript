@@ -3,13 +3,18 @@ import "./styles.css";
 import ReactJson from "react-json-view";
 import faker from "faker";
 import cardPool from "./cards";
-import type { Team, Game, Player, Action } from "./types";
+import type { Team, Game, Player, Action, Card } from "./types";
+import shuffle from "lodash/shuffle";
+import PlayerComponent from "./Player";
 
 // const MAX_PLAYERS = cardPool.length / 4;
 const CARDS_PER_PLAYER = 4;
 const MAX_PLAYERS_FOR_CARD_SELECTION = Math.floor(cardPool.length / 7);
 
 // helper functions
+function getPlayer(game: Game, playerId: string): Player | undefined {
+  return game.players.find((p) => p.id === playerId);
+}
 function getTeamSize(game: Game, team: Team): number {
   return game.players.filter((player) => player.team === team).length;
 }
@@ -69,16 +74,58 @@ function canSwitchTeam(game: Game): boolean {
   return false;
 }
 
+function canPlayerSelectCards(game: Game, playerId: string): boolean {
+  const player = getPlayer(game, playerId);
+  if (
+    player !== undefined &&
+    game.gameState === "CARD_SELECTION" &&
+    player.cardPool
+  )
+    return true;
+  return false;
+}
+
 // state change functions
+
+/**
+ * Player selects cards for the game, before the rounds start.
+ *
+ * @param game
+ * @param player
+ * @param cards
+ */
+function playerSelectCards(game: Game, playerId: string, cards: Card[]): Game {
+  const player = game.players.find((p) => p.id === playerId);
+  if (!player) {
+    throw new Error(`Player (${playerId}) is not a valid player`);
+  }
+
+  game.deck.push(...cards);
+  player.cardPool = undefined;
+  return game;
+}
+
+/**
+ * Each player is given a number of cards, and has to select a set of them to include in the deck for the game.
+ * @param game
+ */
+function passOutCards(game: Game): Game {
+  const cardsPerPlayer = Math.floor(game.cardPool.length / game.players.length);
+  for (const player of game.players) {
+    player.cardPool = game.cardPool.splice(0, cardsPerPlayer);
+  }
+  return game;
+}
 
 function startGame(game: Game): Game {
   const canStart = canStartGame(game);
   if (canStart && game.players.length <= MAX_PLAYERS_FOR_CARD_SELECTION) {
     game.gameState = "CARD_SELECTION";
-    return game;
+    return passOutCards(game);
   }
   if (canStart && game.players.length > MAX_PLAYERS_FOR_CARD_SELECTION) {
     game.gameState = "ROUND_LOBBY";
+    game.deck = game.cardPool;
     return game;
   }
   return game;
@@ -111,6 +158,22 @@ function reducer(game: Game, action: Action): Game {
     case "SWITCH_TEAM":
       if (!canSwitchTeam(game)) return game;
       return switchTeam(copyGame(game), action.payload.playerId);
+    case "PLAYER_SELECT_CARDS":
+      if (!canPlayerSelectCards(game, action.payload.playerId)) {
+        return game;
+      }
+
+      const nextGame = playerSelectCards(
+        game,
+        action.payload.playerId,
+        action.payload.cards
+      );
+
+      if (nextGame.players.find((p) => p.cardPool) === undefined) {
+        nextGame.gameState = "ROUND_LOBBY";
+      }
+
+      return { ...nextGame };
     default:
       return game;
   }
@@ -122,7 +185,7 @@ function App() {
     gameState: "LOBBY",
     deck: [],
     players: [],
-    cardPool: JSON.parse(JSON.stringify(cardPool))
+    cardPool: shuffle(JSON.parse(JSON.stringify(cardPool)))
   });
 
   const addPlayer = () => {
@@ -154,20 +217,26 @@ function App() {
           BLUE TEAM
           <ul>
             {getPlayersFromTeam(game, "BLUE").map((p) => (
-              <li>
-                {p.name}{" "}
-                {game.gameState === "LOBBY" && (
-                  <button
-                    onClick={() => {
-                      dispatch({
-                        type: "SWITCH_TEAM",
-                        payload: { playerId: p.id }
-                      });
-                    }}
-                  >
-                    switch
-                  </button>
-                )}
+              <li key={p.id}>
+                <PlayerComponent
+                  player={p}
+                  gameState={game.gameState}
+                  onSelectCards={(cards) => {
+                    dispatch({
+                      type: "PLAYER_SELECT_CARDS",
+                      payload: {
+                        cards,
+                        playerId: p.id
+                      }
+                    });
+                  }}
+                  onSwitch={() => {
+                    dispatch({
+                      type: "SWITCH_TEAM",
+                      payload: { playerId: p.id }
+                    });
+                  }}
+                />
               </li>
             ))}
           </ul>
@@ -176,20 +245,26 @@ function App() {
           RED TEAM
           <ul>
             {getPlayersFromTeam(game, "RED").map((p) => (
-              <li>
-                {p.name}
-                {game.gameState === "LOBBY" && (
-                  <button
-                    onClick={() => {
-                      dispatch({
-                        type: "SWITCH_TEAM",
-                        payload: { playerId: p.id }
-                      });
-                    }}
-                  >
-                    switch
-                  </button>
-                )}
+              <li key={p.id}>
+                <PlayerComponent
+                  player={p}
+                  gameState={game.gameState}
+                  onSelectCards={(cards) => {
+                    dispatch({
+                      type: "PLAYER_SELECT_CARDS",
+                      payload: {
+                        cards,
+                        playerId: p.id
+                      }
+                    });
+                  }}
+                  onSwitch={() => {
+                    dispatch({
+                      type: "SWITCH_TEAM",
+                      payload: { playerId: p.id }
+                    });
+                  }}
+                />
               </li>
             ))}
           </ul>
